@@ -143,10 +143,29 @@ export function makeArcPathStr(
 		center.x + endPosition.x,
 		center.y + endPosition.y,
 	];
-	return `M${center.x} ${center.y}
-		L${arcStartX} ${arcStartY}
-		A ${radius} ${radius} 0 ${largeArc} ${clockWise ? 1 : 0}
-		${arcEndX} ${arcEndY} z`;
+
+    const innerRadius = radius * 0.6;  // 60% of outer radius
+
+	// return `M${center.x} ${center.y}
+	// 	L${arcStartX} ${arcStartY}
+	// 	A ${radius} ${radius} 0 ${largeArc} ${clockWise ? 1 : 0}
+	// 	${arcEndX} ${arcEndY} z`;
+
+	// return `
+    //     M ${arcStartX} ${arcStartY}
+    //     A ${radius} ${radius} 0 ${largeArc} ${clockWise ? 1 : 0} ${arcEndX} ${arcEndY}
+    //     L ${center.x} ${center.y}
+    //     A ${innerRadius} ${innerRadius} 0 ${largeArc} ${clockWise ? 0 : 1} ${arcStartX} ${arcStartY}
+    //     Z
+    // `;
+
+    return `
+        M ${arcStartX} ${arcStartY}
+        A ${radius} ${radius} 0 ${largeArc} ${clockWise ? 1 : 0} ${arcEndX} ${arcEndY}
+        L ${center.x + (endPosition.x * innerRadius/radius)} ${center.y + (endPosition.y * innerRadius/radius)}
+        A ${innerRadius} ${innerRadius} 0 ${largeArc} ${clockWise ? 0 : 1} ${center.x + (startPosition.x * innerRadius/radius)} ${center.y + (startPosition.y * innerRadius/radius)}
+        Z
+    `;
 }
 
 export function makeCircleStr(
@@ -429,16 +448,20 @@ function makeVertLine(x, label, y1, y2, options = {}) {
 	return line;
 }
 
-function makeHoriLine(y, label, x1, x2, options = {}) {
-	if (!options.stroke) options.stroke = BASE_LINE_COLOR;
-	if (!options.lineType) options.lineType = "";
+function makeHoriLine2(y, label, x1, x2, options = {}) {
+	// if (!options.stroke) options.stroke = BASE_LINE_COLOR;
+	// if (!options.lineType) options.lineType = "";
+    if (!options.stroke) options.stroke = 'rgba(27, 31, 35, 0.1)';  // Lighter grid
+    if (!options.lineType) options.lineType = "";
 	if (!options.alignment) options.alignment = "left";
 	if (options.shortenNumbers) label = shortenLargeNumber(label);
 
-	let className =
-		"line-horizontal " +
-		options.className +
-		(options.lineType === "dashed" ? "dashed" : "");
+	// let className =
+	// 	"line-horizontal " +
+	// 	options.className +
+	// 	(options.lineType === "dashed" ? "dashed" : "");
+
+    let className = "line-horizontal " + options.className;
 
 	const textXPos =
 		options.alignment === "left"
@@ -452,15 +475,28 @@ function makeHoriLine(y, label, x1, x2, options = {}) {
 	const lineX2Post = options.title ? x2 - LABEL_WIDTH : x2;
 
 	let l = createSVG("line", {
-		className: className,
-		x1: lineX1Post,
-		x2: lineX2Post,
-		y1: 0,
-		y2: 0,
-		styles: {
-			stroke: options.stroke,
-		},
-	});
+        className: className,
+        x1: x1,
+        x2: x2,
+        y1: 0,
+        y2: 0,
+        styles: {
+            stroke: options.stroke,
+            'stroke-width': '1',  // Thinner lines
+            'stroke-dasharray': options.lineType === "dashed" ? '3, 3' : null  // Better dashes
+        }
+    });
+
+	// let l = createSVG("line", {
+	// 	className: className,
+	// 	x1: lineX1Post,
+	// 	x2: lineX2Post,
+	// 	y1: 0,
+	// 	y2: 0,
+	// 	styles: {
+	// 		stroke: options.stroke,
+	// 	},
+	// });
 
 	let text = createSVG("text", {
 		x: textXPos,
@@ -484,6 +520,41 @@ function makeHoriLine(y, label, x1, x2, options = {}) {
 	line.appendChild(text);
 
 	return line;
+}
+
+function makeHoriLine(y, label, x1, x2, options = {}) {
+    if (!options.stroke) options.stroke = BASE_LINE_COLOR;
+    if (!options.lineType) options.lineType = "";
+
+    const line = createSVG("line", {
+        className: "line-horizontal " + options.className,
+        x1: x1,
+        x2: x2,
+        y1: 0,
+        y2: 0,
+        styles: {
+            stroke: options.stroke,
+            'stroke-width': options.mode === "axis" ? 2 : 1,
+            'stroke-opacity': options.mode === "axis" ? 1 : 0.2
+        }
+    });
+
+    // Add subtle gradient overlay for grid
+    if (options.mode !== "axis") {
+        const gradient = createSVG("linearGradient", {
+            id: `grid-gradient-${y}`,
+            x1: "0%",
+            y1: "0%",
+            x2: "100%",
+            y2: "0%"
+        });
+        gradient.innerHTML = `
+            <stop offset="0%" style="stop-color:rgba(27,31,35,0.1);stop-opacity:0" />
+            <stop offset="50%" style="stop-color:rgba(27,31,35,0.1);stop-opacity:0.1" />
+            <stop offset="100%" style="stop-color:rgba(27,31,35,0.1);stop-opacity:0" />
+        `;
+        line.style.stroke = `url(#grid-gradient-${y})`;
+    }
 }
 
 export function generateAxisLabel(options) {
@@ -554,14 +625,29 @@ export function yLine(y, label, width, options = {}) {
 
 	if (typeof label === "number") label = round(label);
 
+    if (options.mode === "axis") {
+        options.stroke = "rgba(27, 31, 35, 0.4)";  // Darker for axis
+        options.strokeWidth = 2;
+    }
+
 	return makeHoriLine(y, label, x1, x2, {
-		stroke: options.stroke,
-		className: options.className,
-		lineType: options.lineType,
-		alignment: options.pos,
-		title: options.title,
-		shortenNumbers: options.shortenNumbers,
-	});
+        stroke: options.stroke,
+        strokeWidth: options.strokeWidth || 1,
+        className: options.className,
+        lineType: options.lineType,
+        alignment: options.pos,
+        title: options.title,
+        shortenNumbers: options.shortenNumbers
+    });
+
+	// return makeHoriLine(y, label, x1, x2, {
+	// 	stroke: options.stroke,
+	// 	className: options.className,
+	// 	lineType: options.lineType,
+	// 	alignment: options.pos,
+	// 	title: options.title,
+	// 	shortenNumbers: options.shortenNumbers,
+	// });
 }
 
 export function xLine(x, label, height, options = {}) {
@@ -699,57 +785,72 @@ export function datasetBar(
 	if (!isValidNumber(height, true)) height = 0;
 	if (!isValidNumber(width, true)) width = 0;
 
-	// x y h w
 
-	// M{x},{y+r}
-	// q0,-{r} {r},-{r}
-	// q{r},0 {r},{r}
-	// v{h-r}
-	// h-{w}z
-
-	// let radius = width/2;
-	// let pathStr = `M${x},${y+radius} q0,-${radius} ${radius},-${radius} q${radius},0 ${radius},${radius} v${height-radius} h-${width}z`
-
-	// let rect = createSVG('path', {
-	// 	className: 'bar mini',
-	// 	d: pathStr,
-	// 	styles: { fill: color },
+	// let rect = createSVG("rect", {
+	// 	className: `bar mini`,
+	// 	style: `fill: ${color}`,
+	// 	"data-point-index": index,
 	// 	x: x,
 	// 	y: y,
-	// 	'data-point-index': index,
+	// 	width: width,
+	// 	height: height,
 	// });
 
-	let rect = createSVG("rect", {
-		className: `bar mini`,
-		style: `fill: ${color}`,
-		"data-point-index": index,
-		x: x,
-		y: y,
-		width: width,
-		height: height,
-	});
+    const radius = Math.min(width / 2, 4); // Cap at 4px
+
+	const pathStr = `
+        M ${x},${y + height}
+        L ${x},${y + radius}
+        Q ${x},${y} ${x + radius},${y}
+        L ${x + width - radius},${y}
+        Q ${x + width},${y} ${x + width},${y + radius}
+        L ${x + width},${y + height}
+        Z
+    `;
+
+    let rect = createSVG("path", {
+        className: `bar mini`,
+        d: pathStr,
+        style: `fill: ${color}`,
+        "data-point-index": index
+    });
 
 	label += "";
 
 	if (!label && !label.length) {
 		return rect;
 	} else {
-		rect.setAttribute("y", 0);
-		rect.setAttribute("x", 0);
-		let text = createSVG("text", {
-			className: "data-point-value",
-			x: width / 2,
-			y: 0,
-			dy: (FONT_SIZE / 2) * -1 + "px",
-			"font-size": FONT_SIZE + "px",
-			"text-anchor": "middle",
-			innerHTML: label,
-		});
+		// rect.setAttribute("y", 0);
+		// rect.setAttribute("x", 0);
+		// let text = createSVG("text", {
+		// 	className: "data-point-value",
+		// 	x: width / 2,
+		// 	y: 0,
+		// 	dy: (FONT_SIZE / 2) * -1 + "px",
+		// 	"font-size": FONT_SIZE + "px",
+		// 	"text-anchor": "middle",
+		// 	innerHTML: label,
+		// });
 
-		let group = createSVG("g", {
-			"data-point-index": index,
-			transform: `translate(${x}, ${y})`,
-		});
+		// let group = createSVG("g", {
+		// 	"data-point-index": index,
+		// 	transform: `translate(${x}, ${y})`,
+		// });
+
+        let text = createSVG("text", {
+            className: "data-point-value",
+            x: x + width / 2,
+            y: y - 6, // Position above bar
+            dy: "-0.5em",
+            "font-size": FONT_SIZE + "px",
+            "text-anchor": "middle",
+            innerHTML: label
+        });
+
+        let group = createSVG("g", {
+            "data-point-index": index,
+        });
+
 		group.appendChild(rect);
 		group.appendChild(text);
 

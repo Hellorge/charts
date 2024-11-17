@@ -25,13 +25,13 @@ export const DATA_COLOR_DIVISIONS = {
 
 export const BASE_MEASURES = {
   margins: {
-    top: 10,
-    bottom: 10,
-    left: 20,
-    right: 20,
+    top: 16,
+    bottom: 16,
+    left: 24,
+    right: 24,
   },
   paddings: {
-    top: 20,
+    top: 24,
     bottom: 40,
     left: 30,
     right: 10,
@@ -39,9 +39,9 @@ export const BASE_MEASURES = {
 
   baseHeight: 240,
   titleHeight: 20,
-  legendHeight: 30,
+  legendHeight: 40,
 
-  titleFontSize: 12,
+  titleFontSize: 14,
 };
 
 export function getTopOffset(m) {
@@ -79,11 +79,11 @@ export const AXIS_DATASET_CHART_TYPES = ["line", "bar"];
 export const LEGEND_ITEM_WIDTH = 150;
 export const SERIES_LABEL_SPACE_RATIO = 0.6;
 
-export const BAR_CHART_SPACE_RATIO = 0.5;
-export const MIN_BAR_PERCENT_HEIGHT = 0.0;
+export const BAR_CHART_SPACE_RATIO = 0.4;
+export const MIN_BAR_PERCENT_HEIGHT = 0.02;
 
-export const LINE_CHART_DOT_SIZE = 4;
-export const DOT_OVERLAY_SIZE_INCR = 4;
+export const LINE_CHART_DOT_SIZE = 6;
+export const DOT_OVERLAY_SIZE_INCR = 6;
 
 export const PERCENTAGE_BAR_DEFAULT_HEIGHT = 16;
 
